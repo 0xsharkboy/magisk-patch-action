@@ -1,0 +1,66 @@
+name: 'Magisk Boot Patch Action'
+description: "An action to download, patch and release your Magisk patched boot image"
+
+inputs:
+  devices:
+    description: 'List of device codenames'
+    required: true
+
+  ota_link:
+    description: 'OTA updater link'
+    required: true
+
+  github_token:
+    description: 'GitHub token for releases'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download patch script
+      shell: bash
+      run: |
+        git clone --recurse-submodules https://github.com/0xsharkboy/Magisk-Boot-Patcher script
+        chmod +x script/patch_boot.sh
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y adb fastboot dos2unix unzip curl jq brotli
+
+    - name: Extract & patch images
+      shell: bash
+      env:
+        OTA_LINK: ${{ inputs.ota_link }}
+        DEVICES: ${{ inputs.devices }}
+      run: |
+        IFS=',' read -ra device_array <<< "$DEVICES"
+        zip_array=()
+
+        for device in "${device_array[@]}"; do
+          download_link=$(curl -s "${OTA_LINK}${device}.json" | jq -r ".response[0].download")
+          if [ "$download_link" != "null" ]; then
+            zip_name="${device}.zip"
+            echo "Downloading $zip_name from ${download_link}..."
+            wget -q "$download_link" -O "$zip_name"
+            zip_array+=("$zip_name")
+          else
+            echo "Download link for $device not found."
+          fi
+        done
+
+        echo -e "Downloads completed\n"
+        sudo ./script/patch_boot.sh "${zip_array[@]}"
+
+    - name: Upload patched images
+      uses: softprops/action-gh-release@v2
+      with:
+        token: ${{ inputs.github_token }}
+        name: 'Magisk patched boot images'
+        tag_name: ${{ github.run_id }}
+        make_latest: 'true'
+        files: script/out/*.img
