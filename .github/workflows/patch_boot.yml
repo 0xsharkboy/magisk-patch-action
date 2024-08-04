@@ -8,27 +8,48 @@ jobs:
     name: Download & patch boot images
     runs-on: ubuntu-latest
 
+    env:
+      DEVICES: |
+        beyond0lte
+        beyond2lte
+
+      OTA_LINK: https://raw.githubusercontent.com/Evolution-XYZ/OTA/udc/builds/
+
     steps:
       - name: Download files
         run: |
           git clone --recurse-submodules https://github.com/0xsharkboy/Magisk-Boot-Patcher script
-          echo "Downloading rom zip package..."
-          wget -q https://sourceforge.net/projects/evolution-x/files/beyond2lte/14/EvolutionX-14.0-20240727-beyond2lte-v9.2-Official.zip/download -O rom.zip
-          echo "Done !"
+          chmod +x script/patch_boot.sh
 
       - name: Install dependencies
         run: sudo apt install adb fastboot dos2unix unzip curl ed brotli
 
       - name: Extract & patch images
         run: |
-          cd script
-          chmod +x patch_boot.sh
-          ./patch_boot.sh ../rom.zip
+          zip_array=()
+
+          i=0
+          for device in $DEVICES; do
+            zip_name="${i}.zip"
+            download_link=$(curl "${OTA_LINK}${device}.json" | jq -r ".response[0].download")
+            
+            echo "Downloading $zip_name from ${download_link}..."
+            wget -q "$download_link" -O "$zip_name"
+
+            zip_array+=("$zip_name")
+            i=$((i + 1))
+          done
+
+          echo "Downloads completed"
+          echo -e "Extracting and patching ROM packages...\n"
+          sudo ./script/patch_boot.sh "${zip_array[@]}"
 
       - name: Upload patched images
-        uses: actions/upload-artifact@v4
+        uses: softprops/action-gh-release@v2
         with:
-          name: patched
-          path: |
+          token: ${{ secrets.TOKEN }}
+          tag_name: ${{ github.run_id }}
+          make_latest: "true"
+          files: |
             script/out/*.img
         
