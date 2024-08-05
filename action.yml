@@ -6,6 +6,10 @@ inputs:
     description: 'List of device codenames'
     required: true
 
+  ota_link:
+    description: 'OTA updater link'
+    required: true
+
 runs:
   using: 'composite'
   steps:
@@ -31,19 +35,20 @@ runs:
         DEVICES: ${{ inputs.devices }}
       run: |
         IFS=',' read -ra device_array <<< "$DEVICES"
-        zip_array=()
 
         for device in "${device_array[@]}"; do
           download_link=$(curl -s "${OTA_LINK}${device}.json" | jq -r ".response[0].download")
           if [ "$download_link" != "null" ]; then
             zip_name="${device}.zip"
+
             echo "Downloading $zip_name from ${download_link}..."
             wget -q "$download_link" -O "$zip_name"
-            zip_array+=("$zip_name")
+
+            sudo ./script/patch_boot.sh $zip_name
+          
+            echo "Cleaning ${zip_name}..."
+            rm -f "$zip_name"
           else
             echo "Download link for $device not found."
           fi
         done
-
-        echo -e "Downloads completed\n"
-        sudo ./script/patch_boot.sh "${zip_array[@]}"
