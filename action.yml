@@ -1,21 +1,9 @@
 name: 'Magisk Boot Patch Action'
-description: "An action to download, patch and release your Magisk patched boot image"
+description: "An action to download and patch your Magisk patched boot image"
 
 inputs:
   devices:
     description: 'List of device codenames'
-    required: true
-
-  ota_link:
-    description: 'OTA updater link'
-    required: true
-
-  release_title:
-    description: 'The desired title for releases'
-    default: 'Magisk patched boot images'
-
-  github_token:
-    description: 'GitHub token for releases'
     required: true
 
 runs:
@@ -59,12 +47,3 @@ runs:
 
         echo -e "Downloads completed\n"
         sudo ./script/patch_boot.sh "${zip_array[@]}"
-
-    - name: Upload patched images
-      uses: softprops/action-gh-release@v2
-      with:
-        token: ${{ inputs.github_token }}
-        name: ${{ inputs.release_title }}
-        tag_name: ${{ github.run_id }}
-        make_latest: 'true'
-        files: script/out/*.img
