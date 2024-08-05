@@ -10,6 +10,10 @@ inputs:
     description: 'OTA updater link'
     required: true
 
+  release_title:
+    description: 'The desired title for releases'
+    default: 'Magisk patched boot images'
+
   github_token:
     description: 'GitHub token for releases'
     required: true
@@ -60,7 +64,7 @@ runs:
       uses: softprops/action-gh-release@v2
       with:
         token: ${{ inputs.github_token }}
-        name: 'Magisk patched boot images'
+        name: ${{ inputs.release_title }}
         tag_name: ${{ github.run_id }}
         make_latest: 'true'
         files: script/out/*.img
