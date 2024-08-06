@@ -10,6 +10,11 @@ inputs:
     description: 'OTA updater link'
     required: true
 
+  args:
+    description: 'Extra args for patch_boot.sh'
+    required: false
+    default: ''
+
 runs:
   using: 'composite'
   steps:
@@ -33,6 +38,7 @@ runs:
       env:
         OTA_LINK: ${{ inputs.ota_link }}
         DEVICES: ${{ inputs.devices }}
+        ARGS: ${{ inputs.args }}
       run: |
         IFS=',' read -ra device_array <<< "$DEVICES"
 
@@ -44,7 +50,7 @@ runs:
             echo "Downloading $zip_name from ${download_link}..."
             wget -q "$download_link" -O "$zip_name"
 
-            sudo ./script/patch_boot.sh $zip_name
+            sudo ./script/patch_boot.sh $ARGS $zip_name
           
             echo "Cleaning ${zip_name}..."
             rm -f "$zip_name"
