@@ -10,10 +10,15 @@ inputs:
     description: 'OTA updater link'
     required: true
 
-  args:
-    description: 'Extra args for patch_boot.sh'
+  use_magisk:
+    description: 'Use Magisk to patch boot image'
     required: false
-    default: ''
+    default: true
+  
+  use_kitsune:
+    description: 'Use Kitsune to patch boot image'
+    required: false
+    default: false
 
 runs:
   using: 'composite'
@@ -38,7 +43,8 @@ runs:
       env:
         OTA_LINK: ${{ inputs.ota_link }}
         DEVICES: ${{ inputs.devices }}
-        ARGS: ${{ inputs.args }}
+        USE_MAGISK: ${{ inputs.use_magisk }}
+        USE_KITSUNE: ${{ inputs.use_kitsune }}
       run: |
         IFS=',' read -ra device_array <<< "$DEVICES"
 
@@ -50,7 +56,17 @@ runs:
             echo "Downloading $zip_name from ${download_link}..."
             wget -q "$download_link" -O "$zip_name"
 
-            sudo ./script/patch_boot.sh $ARGS $zip_name
+            # Patch with Magisk
+            if [ "$USE_MAGISK" = true ]; then
+              echo "Using Magisk to patch $zip_name..."
+              sudo ./script/patch_boot.sh $zip_name
+            fi
+
+            # Patch with Kitsune
+            if [ "$USE_KITSUNE" = true ]; then
+              echo "Using Kitsune to patch $zip_name..."
+              sudo ./script/patch_boot.sh -k $zip_name
+            fi
           
             echo "Cleaning ${zip_name}..."
             rm -f "$zip_name"
