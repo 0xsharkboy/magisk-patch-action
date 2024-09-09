@@ -64,7 +64,7 @@ runs:
 
             # Remove stock boot.img if patching with Magisk and Kitsune
             if [ "$USE_MAGISK" && "$USE_KITSUNE" ]; then
-              find -type f -name 'stock-*.img' -delete
+              find -type f -name 'stock*.img' -delete
             fi
 
             # Patch with Kitsune
