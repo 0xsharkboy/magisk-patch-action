@@ -62,6 +62,11 @@ runs:
               sudo ./script/patch_boot.sh $zip_name
             fi
 
+            # Remove stock boot.img if patching with Magisk and Kitsune
+            if [ "$USE_MAGISK" && "$USE_KITSUNE" ]; then
+              find -type f -name 'stock-*.img' -delete
+            fi
+
             # Patch with Kitsune
             if [ "$USE_KITSUNE" = true ]; then
               echo "Using Kitsune to patch $zip_name..."
